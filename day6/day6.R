@@ -26,8 +26,9 @@ dir <- t(c(-1,0))
 turn_right <- matrix(c(0, -1, 1, 0), nrow=2, byrow = TRUE)
 
 # otherwise just iterate I guess...
+route <- map
 while (TRUE) {
-  map[guard] <- "X"
+  route[guard] <- "X"
   guard_next <- guard+dir
   if (any(guard_next < 1) |
       any(guard_next > c(nrow(map), ncol(map)))) {
@@ -40,7 +41,7 @@ while (TRUE) {
   }
 }
 
-sum(map == "X")
+sum(route == "X")
 
 # Part 2 means we must create a cycle. I think this calls for graph theory...
 # But how do we generate the correct graph?
@@ -55,7 +56,10 @@ sum(map == "X")
 
 # Instead, I think we'll just do it the dumb way!
 # Just iterate across the region for "new obstacles"
-# and then check for cycles in the above loop
+# and then check for cycles in the above loop.
+
+# One speedup is recognising that the obstacles can only be on the existing
+# guard walk from part 1 I think? Otherwise the guard won't hit them.
 
 # we need to store the previous directions we've seen the guard
 # go so we can detect a cycle.
@@ -95,14 +99,12 @@ guard_cycles <- function(map, guard, dir, obs=NULL) {
   return(FALSE) # no cycle
 }
 
-guard_cycles(map, guard, dir, obs=matrix(c(7,4), nrow=1))
-
-guard_cycles(map, guard, dir, obs=matrix(c(1,1), nrow=1))
-
 # now, let's place obstacles and see if he escapes
-obs <- which(map == ".", arr.ind=TRUE) |>
+obs <- which(route == "X", arr.ind=TRUE) |>
   as_tibble()
+guard <- which(map == "^", arr.ind = TRUE)
 
+# do computation
 obs |>
   mutate(cycles = map2_lgl(row, col, ~ guard_cycles(map, guard, dir, obs=matrix(c(.x, .y),
                                                                             nrow=1)))) |>
