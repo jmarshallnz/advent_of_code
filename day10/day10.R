@@ -1,16 +1,6 @@
 library(tidyverse)
 library(igraph)
 
-input <- read.table(text="89010123
-78121874
-87430965
-96549874
-45678903
-32019012
-01329801
-10456732", sep="", colClasses='character') |>
-  pull(V1)
-
 input <- read_lines("day10/input.txt")
 
 d <- input |> str_split_fixed("", n=Inf) |> apply(1, as.numeric)
