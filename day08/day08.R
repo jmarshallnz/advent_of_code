@@ -25,7 +25,7 @@ antenna |> left_join(antenna, by="wch", relationship='many-to-many') |>
 # part 2. Hotspots are k * (dx,dy) for integers k. Seems we won't need more than
 # max(dim(d))-1 of them
 max_rep <- max(dim(d))-1
-integers <- tibble(offset=-max_rep:max_rep)
+integers <- tibble(offset=0:max_rep)
 antenna |> left_join(antenna, by="wch", relationship='many-to-many') |>
   filter(rowid.x != rowid.y) |>
   mutate(dx = row.y - row.x, dy = col.y - col.x) |>
