@@ -14,10 +14,9 @@ combo <- function(reg, operand) {
   reg[operand %% 4 + 1] # Potentially this is gonna fault...
 }
 
-# R's bitwXor is 32 bit, so let's just fudge to 62 bit for part 2.
+# R's bitwXor is 32 bit, but we don't care about the top bits anyway
 xor <- function(a, b) {
-  bitwXor(a %% 2^31,b %% 2^31) +
-  bitwXor(a %/% 2^31,b %/% 2^31)*2^31
+  bitwXor(a %% 2^31,b %% 2^31)
 }
 
 adv <- function(state, operand, store = A) {
