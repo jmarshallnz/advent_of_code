@@ -117,3 +117,41 @@ for (i in 1:nrow(to_go)) {
 ans <- to_go |> slice(i)
 ans |> mutate(done = paste(x-1,y-1,sep=","))
 
+# Hmm, lets go back to the vertex cut idea...
+# We know that the graph is connected right up the first cut,
+# so can skip there immediately:
+
+grid <- matrix(0, nrow=size, ncol=size)
+grid[input |> slice(1:(1024+1431)) |> as.matrix()] <- 1
+graph <- grid_to_graph(grid)
+connected_start_to_end(graph)
+
+# now we can go ahead and find the cut-points here too?
+cut_vertices <- graph |> articulation_points()
+
+cut_points <- tibble(wch=cut_vertices |> as.numeric(), x=vertex_attr(graph, 'x', cut_vertices),
+                     y=vertex_attr(graph, 'y', cut_vertices))
+
+# ok, now check our input
+to_go <- input[(1024+1431+1):nrow(input),] |> set_names(nm=c('x', 'y'))
+
+# ok, now optimise from there based on where our path is?
+get_shortest_path <- function(graph) {
+  start <- which(vertex_attr(graph, 'x') == 1 & vertex_attr(graph, 'y') == 1)
+  end <- which(vertex_attr(graph, 'x') == size & vertex_attr(graph, 'y') == size)
+  v <- shortest_paths(graph, from=start, to=end)$vpath[[1]] # just need one
+  vertex_attr(graph, index=v)
+}
+
+path_on_grid <- get_shortest_path(graph) |> as_tibble()
+# find which ones to go are on this
+to_go |> rowid_to_column('id') |>
+  semi_join(path_on_grid)
+
+# can skip ahead another 426
+grid <- matrix(0, nrow=size, ncol=size)
+grid[input |> slice(1:(1024+1431+426)) |> as.matrix()] <- 1
+graph <- grid_to_graph(grid)
+connected_start_to_end(graph)
+
+input |> slice(1024+1431+426)
