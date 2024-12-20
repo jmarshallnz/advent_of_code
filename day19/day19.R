@@ -1,4 +1,5 @@
 library(tidyverse)
+options(scipen=999)
 
 input <- "r, wr, b, g, bwu, rb, gb, br
 
@@ -28,7 +29,7 @@ designs <- input[-c(1:2)]
 # in fact, the number of possibilities is the sum
 # of positive integers has to equal 4. i.e. we need
 # ordered partitions of sets?
-library(partitions)
+#library(partitions)
 
 # This would work, but the problem is the input is super long,
 # so doing it this way wouldn't work very nicely at all as the
@@ -161,36 +162,23 @@ ans <- map2_dbl(designs, possible_towels, count_designs)
 sum(ans)
 
 # Alternate solution is counting paths in a graph, right?
+# in fact, we need only the adjacency matrix for this
+count_paths <- function(design, towels) {
+  len <- nchar(design)+1
+  vertices <- tibble(id = seq_len(len))
 
-# in fact, we need only the adjacency matrix...
+  edges <- vertices |> cross_join(vertices) |>
+    filter(id.x < id.y) |>
+    mutate(match = map2_chr(id.x, id.y, \(x, y) str_sub(design, x, y-1))) |>
+    semi_join(tibble(match=towels |> unlist()), by='match')
 
-nodes <- designs[[1]] |> str_split("",n=Inf) |> unlist()
-vertices <- tibble(id = seq_along(nodes), letter=nodes)
-edges <- vertices |> cross_join(vertices) |>
-  filter(id.x < id.y) |>
-  mutate(match = map2_chr(id.x, id.y, \(x, y) str_sub(designs[[1]], x, y-1))) |>
-  semi_join(tibble(match=possible_towels[[1]] |> unlist()))
+  # fill in adjacency matrix
+  adj <- matrix(0, nrow=len, ncol=len)
+  adj[edges |> select(id.x, id.y) |> as.matrix()] <- 1
 
-library(igraph)
-
-# right, make the graph
-graph <- graph_from_edgelist(edges |> select(id.x, id.y) |> as.matrix(), directed=TRUE) |>
-  set_edge_attr(name='towel', value=edges |> pull(match))
-
-# ok, now use a bfs on the graph to go from first to last vertex
-callback <- function(graph, data, extra) {
-  # find how many ways there are to the previous vertices
-  cat(data['vid'],'\n')
-  length(V(g))
-#    as.numeric()
-#  print(v)
-  # we can always continue
-  return(FALSE)
+  # count the paths to the end
+  solve(diag(1, nrow(adj), ncol(adj))-adj)[1,len]
 }
 
-# hmm, we can just invert the adjacency matrix?
-foo <- graph |> as_adjacency_matrix()
-
-solve(diag(1, nrow(foo), ncol(foo))-as.matrix(foo)) # Hmm, this is close - very similar to my original answer.
-# possibly aren't handling overlaps?
-
+ans2 <- map2_dbl(designs, possible_towels, count_paths)
+sum(ans2)
