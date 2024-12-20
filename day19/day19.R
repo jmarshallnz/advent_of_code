@@ -102,8 +102,8 @@ possible_towels <- possible_towels[wch_designs]
 # in reverse by just walking back, or just setting up the matrix and hitting solve()
 
 # it's going to be easier to deal with strings in this case
-possible_towels <- possible_towels |> map( \(x) map(x, paste0, collapse=''))
-designs <- designs |> map(paste0, collapse='')
+possible_towels_str <- possible_towels |> map( \(x) map(x, paste0, collapse=''))
+designs_str <- designs |> map(paste0, collapse='')
 
 count_designs <- function(design_str, towel_str) {
 
@@ -158,7 +158,7 @@ count_designs <- function(design_str, towel_str) {
   solve(mat - diag(1, nrow(mat), ncol(mat)), -vec)[1]
 }
 
-ans <- map2_dbl(designs, possible_towels, count_designs)
+ans <- map2_dbl(designs_str, possible_towels_str, count_designs)
 sum(ans)
 
 # Alternate solution is counting paths in a graph, right?
@@ -180,5 +180,60 @@ count_paths <- function(design, towels) {
   solve(diag(1, nrow(adj), ncol(adj))-adj)[1,len]
 }
 
-ans2 <- map2_dbl(designs, possible_towels, count_paths)
+ans2 <- map2_dbl(designs_str, possible_towels_str, count_paths)
 sum(ans2)
+
+# draw a graph to visualise it
+library(igraph)
+design <- designs[[6]]
+towels <- possible_towels[[6]]
+
+len <- nchar(design)+1
+vertices <- tibble(id = seq_len(len))
+
+edges <- vertices |> cross_join(vertices) |>
+  filter(id.x < id.y) |>
+  mutate(match = map2_chr(id.x, id.y, \(x, y) str_sub(design, x, y-1))) |>
+  semi_join(tibble(match=towels |> unlist()), by='match')
+
+g <- graph_from_edgelist(edges |> select(id.x, id.y) |> as.matrix()) |>
+  set_edge_attr('label', value=edges |> pull(match))
+
+coords <- matrix(c(0:6*2, rep(0,7)), ncol=2)
+
+library(ggraph)
+ggraph(g, layout=coords) +
+  geom_edge_arc(aes(label=label),
+                angle_calc = 'along',
+                label_dodge = unit(2.5, 'mm'),
+                #arrow = arrow(length = unit(4, 'mm')),
+                start_cap = circle(3, 'mm'),
+                end_cap = circle(3, 'mm'),
+                strength=1.2) +
+  geom_node_point(size = 5) +
+  coord_fixed(xlim=c(-1,7*2-1), ylim=c(-1,2.5)) +
+  theme_void()
+
+# part 2 memoised. Damn, this is neat
+library(memoise)
+
+count_paths <- function(design, towels) {
+#  cat('calling hits left with design ', design, '\n')
+  #  print(towels)
+  if (length(design) == 0)
+    return(1)
+  num_patterns <- 0
+  for (i in 1:length(towels)) {
+    ch = seq_along(towels[[i]])
+    if (length(design) >= length(towels[[i]]) && all(design[ch] == towels[[i]])) {
+      # hit the left part of it, so check the rest
+      num_patterns <- num_patterns + count_paths(design[-ch], towels)
+    }
+  }
+  return(num_patterns)
+}
+
+count_paths <- memoise(count_paths)
+ans3 <- map2_dbl(designs, possible_towels, count_paths)
+sum(ans3)
+
