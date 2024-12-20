@@ -119,3 +119,25 @@ calc_saving_from_time <- function(k, graph, v) {
 
 map_dfr(2:20, \(k) calc_saving_from_time(k, graph, v)) |>
   nrow()
+
+# an easier way to solve this one given the path length
+# isn't that big:
+
+# 1. Find path
+# 2. Get (x,y) coords
+# 3. Crossjoin path and filter for forward
+# 4. Find manhattan distance between points
+# 5. Filter
+
+p <- path |> left_join(d_long, join_by(id == vertex)) |>
+  select(order, rowid, colid)
+
+p_all <- p |> cross_join(p) |>
+  filter(order.y > order.x) # cheat advances
+
+p_all |>
+  mutate(d_cheat = abs(rowid.x - rowid.y) + abs(colid.x - colid.y)) |> # shortcut
+  filter(d_cheat <= 20) |>
+  mutate(d_norm = order.y - order.x) |>
+  mutate(d_imp = d_norm - d_cheat) |>
+  filter(d_imp >= 100)
