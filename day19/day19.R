@@ -159,3 +159,38 @@ count_designs <- function(design_str, towel_str) {
 
 ans <- map2_dbl(designs, possible_towels, count_designs)
 sum(ans)
+
+# Alternate solution is counting paths in a graph, right?
+
+# in fact, we need only the adjacency matrix...
+
+nodes <- designs[[1]] |> str_split("",n=Inf) |> unlist()
+vertices <- tibble(id = seq_along(nodes), letter=nodes)
+edges <- vertices |> cross_join(vertices) |>
+  filter(id.x < id.y) |>
+  mutate(match = map2_chr(id.x, id.y, \(x, y) str_sub(designs[[1]], x, y-1))) |>
+  semi_join(tibble(match=possible_towels[[1]] |> unlist()))
+
+library(igraph)
+
+# right, make the graph
+graph <- graph_from_edgelist(edges |> select(id.x, id.y) |> as.matrix(), directed=TRUE) |>
+  set_edge_attr(name='towel', value=edges |> pull(match))
+
+# ok, now use a bfs on the graph to go from first to last vertex
+callback <- function(graph, data, extra) {
+  # find how many ways there are to the previous vertices
+  cat(data['vid'],'\n')
+  length(V(g))
+#    as.numeric()
+#  print(v)
+  # we can always continue
+  return(FALSE)
+}
+
+# hmm, we can just invert the adjacency matrix?
+foo <- graph |> as_adjacency_matrix()
+
+solve(diag(1, nrow(foo), ncol(foo))-as.matrix(foo)) # Hmm, this is close - very similar to my original answer.
+# possibly aren't handling overlaps?
+
