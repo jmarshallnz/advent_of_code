@@ -25,3 +25,16 @@ read.table("2025/day01/input.txt", header=FALSE) |>
          ) |>
   mutate(total_zeros = wrap + past_zero) |>
   mutate(answer = sum(total_zeros))
+
+# alternate for part 2: the tricky bit really is that we need to remember that
+# we should have no overlap between rows. i.e. it needs to be 1-based rather than 0-based
+# for each row.
+read.table("2025/day01/input.txt", header=FALSE) |>
+  extract(V1, into=c("dir", "amount"), regex="([LR])([0-9]+)", convert = TRUE) |>
+  mutate(dir = if_else(dir == "L", -1, 1)) |>
+  mutate(next_pos = 50 + cumsum(amount*dir),
+         curr_pos = lag(next_pos, default=50),
+         start_pos = curr_pos + dir) |>
+  mutate(numbers = map2(start_pos, next_pos, seq)) |>
+  mutate(num_zeros = map_dbl(numbers, \(x) sum((x %% 100) == 0))) |>
+  summarise(answer = sum(num_zeros))
