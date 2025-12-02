@@ -60,3 +60,7 @@ ranges <- read.table("2025/day02/input.txt", sep=",") |>
 ranges |> cross_join(invalids) |>
   filter(num_pattern >= from, num_pattern <= to) |>
   summarise(sum(num_pattern))
+
+# could do the join with a join window:
+ranges |> left_join(invalids, by = join_by(from <= num_pattern, to >= num_pattern)) |>
+  summarise(sum(num_pattern, na.rm=TRUE))
