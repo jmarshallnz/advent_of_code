@@ -1,4 +1,6 @@
 library(tidyverse)
+options(digits = 22,
+        pillar.max_dec_width = 22)
 
 raw <- readLines("2025/day05/input.txt")
 
@@ -19,10 +21,12 @@ valid |> nrow()
 # we could maintain a list of "good" ranges, then it's just an intersection
 
 max_id <- max(ranges$V2)
-valid_ranges <- list(c(1,max_id))
 
 # ok, now iterate through the list of !ranges - we have two for each
-inverses <- map2(ranges$V1, ranges$V2, \(x, y) data.frame(l=c(1, y+1), r=c(x-1, max_id))) |>
+inverses <- map2(ranges$V1, ranges$V2, \(x, y)
+                 tribble(~l, ~r,
+                         1, x-1,
+                         y+1, max_id)) |>
   map(\(x) filter(x, r > 1, l < max_id))
 
 # ok, intersect our current valid_ranges with our inverses
@@ -39,4 +43,4 @@ final_inverse <- reduce(inverses, intersect)
 # ok, the number of "fresh" is then the ivnerse of this
 final_inverse |>
   mutate(length = r-l+1) |>
-  summarise(max_id - sum(length))
+  summarise(ans = max_id - sum(length))
