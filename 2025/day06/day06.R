@@ -20,18 +20,14 @@ map2_dbl(ops, nums, \(x, y) { do.call(what=x, as.list(y))}) |>
 raw <- readLines("2025/day06/input.txt") |>
   str_split_fixed("", n=Inf)
 
-gaps <- apply(raw, 2, \(x) all(x == " "))
+# paste down the columns and convert to numbers
+nums <- apply(raw[-nrow(raw),], 2, \(x) as.numeric(paste(x, collapse='')))
 
-data.frame(sum = cumsum(gaps), gap = gaps, t(raw)) |>
-  rename(op = last_col()) |>        # picks X5 without using the 5 so it'll work with more general input
-  mutate(op = na_if(op, " ")) |>
-  fill(op) |>
-  filter(!gap) |>
-  tibble::rowid_to_column() |>      # paste the X1..X4 columns together. Coded via pivot_longer so it'll work with more
-  pivot_longer(starts_with("X")) |>
-  group_by(sum,op,rowid) |>
-  summarise(value = as.numeric(paste(value, collapse=''))) |>
+# gather together and do the operation
+data.frame(nums, op=raw[nrow(raw),]) |>
+  mutate(sum = cumsum(is.na(nums))) |>
+  filter(!is.na(nums)) |>
   group_by(sum) |>
-  summarise(final = do.call(first(op), as.list(value))) |>
+  summarise(final = do.call(first(op), as.list(nums))) |>
   summarise(sum(final))
 
