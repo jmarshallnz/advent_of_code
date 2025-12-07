@@ -27,8 +27,8 @@ data.frame(sum = cumsum(gaps), gap = gaps, t(raw)) |>
   mutate(op = na_if(op, " ")) |>
   fill(op) |>
   filter(!gap) |>
-  nest(data=X1:X4) |>
-  mutate(num = map(data, \(x) as.numeric(apply(x, 1, FUN=paste, collapse='')))) |>
-  mutate(value = map2_dbl(op, num, \(x, y) do.call(what=x, as.list(y)))) |>
+  mutate(number = as.numeric(paste(X1, X2, X3, X4, sep='')), .keep='unused') |>
+  nest(number = number) |>
+  mutate(value = map2_dbl(op, number, \(x, y) do.call(what=x, y))) |>
   summarise(sum(value))
 
