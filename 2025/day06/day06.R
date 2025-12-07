@@ -23,12 +23,15 @@ raw <- readLines("2025/day06/input.txt") |>
 gaps <- apply(raw, 2, \(x) all(x == " "))
 
 data.frame(sum = cumsum(gaps), gap = gaps, t(raw)) |>
-  rename(op = X5) |>
+  rename(op = last_col()) |>        # picks X5 without using the 5 so it'll work with more general input
   mutate(op = na_if(op, " ")) |>
   fill(op) |>
   filter(!gap) |>
-  mutate(number = as.numeric(paste(X1, X2, X3, X4, sep='')), .keep='unused') |>
-  nest(number = number) |>
-  mutate(value = map2_dbl(op, number, \(x, y) do.call(what=x, y))) |>
-  summarise(sum(value))
+  tibble::rowid_to_column() |>      # paste the X1..X4 columns together. Coded via pivot_longer so it'll work with more
+  pivot_longer(starts_with("X")) |>
+  group_by(sum,op,rowid) |>
+  summarise(value = as.numeric(paste(value, collapse=''))) |>
+  group_by(sum) |>
+  summarise(final = do.call(first(op), as.list(value))) |>
+  summarise(sum(final))
 
